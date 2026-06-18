@@ -1,97 +1,25 @@
-# HR Employee Churn Analysis — AI Vibe Coding Pipeline
+# Day 4 — AI Vibe Coding with Claude Code
 
-**Author:** Brenda Murillo  
-**Course:** Data Analytics Final Project  
-**Institution:** California State University, Bakersfield  
+Turn the Day-3 pipeline into an AI-driven workflow. You install Claude Code, connect a few tools (MCP servers), and define reusable `/workflows` that crawl, build, query, and report — then run them step by step. "Vibe coding": you describe each step in plain language and the AI does the work.
 
----
+## This repo
+Starts (almost) empty on purpose — **you build the project here with Claude Code.** Your `/workflow` command files live in `.claude/commands/` as you create them, and the pipeline's outputs (data, schema, app) land in this repo. Push it to GitHub at the end (Section 4.3).
 
-## Project Overview
-
-This project analyzes the HR Employee Churn dataset (14,999 employee records) to identify
-the primary drivers of voluntary employee turnover. The pipeline was built using **Claude Code**
-with AI-driven `/workflow` commands.
-
-**Key finding:** Employee satisfaction level is the strongest predictor of turnover (r = −0.388).
-Low-salary employees leave at 4.5× the rate of high-salary employees (29.7% vs. 6.6%).
+## Submit
+Push this repo to GitHub: your `.claude/commands/` workflow files + the pipeline you built (crawl → schema → app → report).
 
 ---
 
-## Pipeline
+## The lab, section by section
 
-```
-/crawl  →  hr_employee_churn_data.csv
-/build  →  hr_churn.db  (normalized SQLite, 3NF)
-/query  →  query_results.md
-/report →  HR_Employee_Churn_Report.html + HR_Employee_Churn_Poster.html
-/validate → pipeline check
-```
+### Section 1 — Install Claude Code
+Install Claude Code (`brew install --cask claude-code` / PowerShell installer), then `claude`. Learn the basic commands (`/help`, `claude mcp …`, `/mcp`).
 
----
+### Section 2 — Connect Tools with MCP
+What you do **not** need MCP for (Claude Code already edits files + runs `git`/`python`/`sqlite3`). Add servers with `claude mcp add` — the easy uvx/npx ones (`fetch`, `fs`, `git`), the **GitHub MCP** (a CLI-binary server, needs a token), and the kinds of MCP server (on-demand / CLI-binary / remote). Test with a git round-trip (`gh` CLI).
 
-## Workflow Commands
+### Section 3 — Define Your Workflows
+Make a `/workflow` (a command file in `.claude/commands/`). Build the **four workflows** that are the Day-3 pipeline: `/crawl` → `schedule.csv` · `/build` → load into SQLite · `/query` → extract · `/report` → write it up.
 
-All commands live in `.claude/commands/` and run inside Claude Code with `/command-name`.
-
-| Command | What it does |
-|---|---|
-| `/crawl` | Extracts CSV from zip, cleans missing values, saves `hr_employee_churn_data.csv` |
-| `/build` | Creates normalized SQLite database `hr_churn.db` with 4 tables (3NF) |
-| `/query` | Runs 6 analytical queries, saves results to `query_results.md` |
-| `/report` | Generates charts + HTML report + HTML research poster |
-| `/validate` | Checks all pipeline outputs for correctness |
-
----
-
-## Database Schema (3NF)
-
-```
-salary_levels       employees              performance_records    employment_events
-─────────────       ─────────────────      ───────────────────    ─────────────────
-salary_id (PK)  ◄── salary_id (FK)         emp_id (PK/FK)         emp_id (PK/FK)
-salary_label        emp_id (PK)            satisfaction_level      work_accident
-                    time_spend_company     last_evaluation         promotion_last_5years
-                                           number_project          left_company
-                                           average_monthly_hours
-```
-
----
-
-## Key Results
-
-| Metric | Value |
-|---|---|
-| Total employees | 14,999 |
-| Overall turnover rate | 23.81% |
-| Avg satisfaction — stayed | 0.667 |
-| Avg satisfaction — left | 0.440 |
-| Turnover rate — low salary | 29.7% |
-| Turnover rate — high salary | 6.6% |
-| Strongest predictor | satisfaction_level (r = −0.388) |
-
----
-
-## Tools
-
-- **Python** — pandas, matplotlib, sqlite3
-- **Claude Code** — AI-driven workflow commands
-- **SQLite** — normalized relational database
-- **MCP servers** — fetch, fs, git, GitHub
-
----
-
-## How to Run
-
-```bash
-# In Claude Code terminal
-/crawl      # extract and clean the data
-/build      # build the database
-/query      # run analysis queries
-/report     # generate HTML report and poster
-/validate   # confirm everything is correct
-```
-
----
-
-*This research program is funded by the U.S. Department of Education, Title III Part F,
-HSI-STEM program under award number P031C210093.*
+### Section 4 — Validate & Report
+`/validate` (check it's all correct) · `/report` (write the report) · **4.3 Submit** — push your project to GitHub with the git MCP and hand in the link.
