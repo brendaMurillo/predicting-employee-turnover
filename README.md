@@ -1,25 +1,39 @@
-# Day 4 — AI Vibe Coding with Claude Code
+# Predicting Employee Turnover
 
-Turn the Day-3 pipeline into an AI-driven workflow. You install Claude Code, connect a few tools (MCP servers), and define reusable `/workflows` that crawl, build, query, and report — then run them step by step. "Vibe coding": you describe each step in plain language and the AI does the work.
+An end-to-end data analysis project exploring the factors that drive employee churn using a dataset of 14,999 HR records.
 
-## This repo
-Starts (almost) empty on purpose — **you build the project here with Claude Code.** Your `/workflow` command files live in `.claude/commands/` as you create them, and the pipeline's outputs (data, schema, app) land in this repo. Push it to GitHub at the end (Section 4.3).
+## Overview
 
-## Submit
-Push this repo to GitHub: your `.claude/commands/` workflow files + the pipeline you built (crawl → schema → app → report).
+This project investigates why employees leave a company and identifies high-risk employees still on the workforce. The analysis covers data cleaning, exploratory data analysis, statistical summaries, SQL querying, and visual reporting.
 
----
+**Key finding:** The overall turnover rate is **23.81%**, with low-salary employees leaving at nearly 30% — more than 4x the rate of high-salary employees.
 
-## The lab, section by section
+## Project Files
 
-### Section 1 — Install Claude Code
-Install Claude Code (`brew install --cask claude-code` / PowerShell installer), then `claude`. Learn the basic commands (`/help`, `claude mcp …`, `/mcp`).
+| File | Description |
+|---|---|
+| `DataAnalysisProject (1).ipynb` | Main Jupyter notebook — full analysis pipeline |
+| `HR_Employee_Churn_Report.html` | Rendered HTML report with charts and findings |
+| `HR_Employee_Churn_Poster.pdf` | Research poster summarizing the project |
+| `Data Analysis Paper (1).pdf` | Written paper with methodology and conclusions |
+| `hr_churn.db` | SQLite database of the HR dataset |
+| `query_results.md` | SQL query outputs — turnover rates, risk profiles |
+| `database_schema_workflow.md` | Database schema and workflow documentation |
 
-### Section 2 — Connect Tools with MCP
-What you do **not** need MCP for (Claude Code already edits files + runs `git`/`python`/`sqlite3`). Add servers with `claude mcp add` — the easy uvx/npx ones (`fetch`, `fs`, `git`), the **GitHub MCP** (a CLI-binary server, needs a token), and the kinds of MCP server (on-demand / CLI-binary / remote). Test with a git round-trip (`gh` CLI).
+## Key Findings
 
-### Section 3 — Define Your Workflows
-Make a `/workflow` (a command file in `.claude/commands/`). Build the **four workflows** that are the Day-3 pipeline: `/crawl` → `schedule.csv` · `/build` → load into SQLite · `/query` → extract · `/report` → write it up.
+- **Turnover rate by salary:** Low (29.7%) · Medium (20.4%) · High (6.6%)
+- **Satisfaction level:** Employees who left averaged 0.44 vs. 0.67 for those who stayed
+- **Overwork signal:** Employees who left worked ~8 more hours/month on average
+- **615 high-risk employees** remain at the company (low satisfaction, low salary, no promotion)
 
-### Section 4 — Validate & Report
-`/validate` (check it's all correct) · `/report` (write the report) · **4.3 Submit** — push your project to GitHub with the git MCP and hand in the link.
+## Tools & Technologies
+
+- Python (pandas, matplotlib)
+- SQLite
+- Jupyter Notebook
+- Claude Code (AI-assisted workflow)
+
+## Author
+
+Brenda Murillo — California State University, Bakersfield
