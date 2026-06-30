@@ -1,10 +1,13 @@
 from docx import Document
-from docx.shared import Pt, Inches, RGBColor, Cm
+from docx.shared import Pt, Inches, RGBColor, Cm, Twips
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
-import copy
+
+# Each column in the two-column layout:
+# (8.5 - 0.75 - 0.75 - 0.5 gutter) / 2 = 3.25 inches
+COL_WIDTH = 3.25
 
 doc = Document()
 
@@ -26,6 +29,37 @@ def set_two_columns(section):
     sectPr.append(cols)
 
 set_two_columns(section)
+
+# ── Fix table to a fixed width and set cell widths ───────────────────────────
+def fix_table(table, col_widths_inches):
+    """Set table total width and each column width explicitly."""
+    tbl = table._tbl
+    tblPr = tbl.find(qn('w:tblPr'))
+    if tblPr is None:
+        tblPr = OxmlElement('w:tblPr')
+        tbl.insert(0, tblPr)
+    # Remove existing tblW if any
+    for old in tblPr.findall(qn('w:tblW')):
+        tblPr.remove(old)
+    total_twips = int(sum(col_widths_inches) * 1440)
+    tblW = OxmlElement('w:tblW')
+    tblW.set(qn('w:w'), str(total_twips))
+    tblW.set(qn('w:type'), 'dxa')
+    tblPr.append(tblW)
+    # Set each cell width per row
+    for row in table.rows:
+        for i, cell in enumerate(row.cells):
+            tc = cell._tc
+            tcPr = tc.find(qn('w:tcPr'))
+            if tcPr is None:
+                tcPr = OxmlElement('w:tcPr')
+                tc.insert(0, tcPr)
+            for old in tcPr.findall(qn('w:tcW')):
+                tcPr.remove(old)
+            tcW = OxmlElement('w:tcW')
+            tcW.set(qn('w:w'), str(int(col_widths_inches[i] * 1440)))
+            tcW.set(qn('w:type'), 'dxa')
+            tcPr.append(tcW)
 
 # ── Helper: add a run with formatting ────────────────────────────────────────
 def add_run(para, text, bold=False, italic=False, size=None, font_name='Times New Roman'):
@@ -207,6 +241,7 @@ for run in t1_caption.runs:
 t1 = doc.add_table(rows=10, cols=4)
 t1.style = 'Table Grid'
 t1.alignment = WD_TABLE_ALIGNMENT.CENTER
+fix_table(t1, [0.65, 1.05, 0.65, 0.90])
 headers = ['Domain', 'Variable', 'Type', 'Description']
 rows_data = [
     ['Satisfaction',  'satisfaction_level',    'Numeric [0,1]', 'Self-reported satisfaction score'],
@@ -321,6 +356,7 @@ for run in t2_caption.runs:
 t2 = doc.add_table(rows=4, cols=4)
 t2.style = 'Table Grid'
 t2.alignment = WD_TABLE_ALIGNMENT.CENTER
+fix_table(t2, [0.80, 0.85, 0.75, 0.85])
 t2_data = [
     ['Salary Tier', 'Total Employees', 'Left', 'Turnover Rate'],
     ['Low',    '7,316', '2,172', '29.69%'],
@@ -357,6 +393,7 @@ for run in t3_caption.runs:
 t3 = doc.add_table(rows=6, cols=3)
 t3.style = 'Table Grid'
 t3.alignment = WD_TABLE_ALIGNMENT.CENTER
+fix_table(t3, [1.55, 0.85, 0.85])
 t3_data = [
     ['Feature', 'Stayed', 'Left'],
     ['Satisfaction level',    '0.667', '0.440'],
@@ -394,6 +431,7 @@ for run in t4_caption.runs:
 t4 = doc.add_table(rows=8, cols=2)
 t4.style = 'Table Grid'
 t4.alignment = WD_TABLE_ALIGNMENT.CENTER
+fix_table(t4, [2.25, 1.00])
 t4_data = [
     ['Feature', 'Pearson r'],
     ['satisfaction_level',     '−0.388'],
@@ -441,6 +479,7 @@ for run in t5_caption.runs:
 t5 = doc.add_table(rows=11, cols=4)
 t5.style = 'Table Grid'
 t5.alignment = WD_TABLE_ALIGNMENT.CENTER
+fix_table(t5, [0.75, 0.85, 0.75, 0.90])
 t5_data = [
     ['Emp. ID', 'Satisfaction', 'Hrs/Mo', 'Tenure (yrs)'],
     ['2087',  '0.12', '244', '5'],
