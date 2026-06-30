@@ -191,7 +191,10 @@ def build():
         "California State University, Bakersfield — Bakersfield, CA, USA",
         S["affil"]
     ))
-    story.append(Paragraph("bmurillo3@csub.edu", S["email"]))
+    story.append(Paragraph(
+        "bmurillo3@csub.edu &nbsp;&nbsp;&nbsp;&nbsp; lpina3@students.avc.edu",
+        S["email"]
+    ))
 
     # ── Abstract & Index Terms (full-width, before columns) ──────────────────
     story.append(Paragraph(
