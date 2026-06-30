@@ -180,7 +180,7 @@ def build():
         S["title"]
     ))
     story.append(Paragraph(
-        "Brenda Murillo &nbsp;&nbsp;&nbsp;&nbsp; Lucinda Pina",
+        "Brenda Murillo &nbsp;&nbsp;&nbsp;&nbsp; Lucinda Piña",
         S["author"]
     ))
     story.append(Paragraph(
