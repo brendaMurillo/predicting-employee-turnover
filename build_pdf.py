@@ -516,9 +516,8 @@ def build():
     # ── ACKNOWLEDGMENT ────────────────────────────────────────────────────────
     story.append(Paragraph("ACKNOWLEDGMENT", S["sec"]))
     story.append(body_ni(
-        "The author thanks the faculty of the Department of Computer and Electrical "
-        "Engineering and Computer Science at California State University, Bakersfield "
-        "for guidance on this project."
+        "The authors thank Kyu Lee and Yasser Youssef for their mentorship and "
+        "guidance throughout this project."
     ))
 
     # ── REFERENCES ────────────────────────────────────────────────────────────
