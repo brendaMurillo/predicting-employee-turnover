@@ -1,0 +1,497 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{booktabs}
+\usepackage{url}
+\usepackage{hyperref}
+
+\begin{document}
+
+% ─── TITLE ───────────────────────────────────────────────────────────────────
+\title{Predicting Employee Turnover: A Statistical Analysis\\of Workforce Attrition Factors}
+
+\author{
+  \IEEEauthorblockN{Brenda Murillo}
+  \IEEEauthorblockA{
+    \textit{Dept. of Computer and Electrical Engineering and Computer Science}\\
+    \textit{California State University, Bakersfield}\\
+    Bakersfield, CA, USA\\
+    bmurillo3@csub.edu
+  }
+}
+
+\maketitle
+
+% ─── ABSTRACT ────────────────────────────────────────────────────────────────
+\begin{abstract}
+Employee turnover represents one of the most persistent and costly challenges
+facing organizations today, yet most retention strategies rely on intuition
+rather than data. This paper presents a statistical analysis of workforce
+attrition using an HR dataset of 14,999 employee records drawn from Kaggle.
+We apply descriptive statistics, relational database querying (SQLite),
+correlation analysis, and visual analysis to identify the factors most
+strongly associated with employee departure. Our findings reveal an overall
+turnover rate of 23.81\%, with low-salary employees leaving at nearly
+30\%---more than four times the rate of high-salary employees. Job
+satisfaction emerges as the single strongest predictor, with a Pearson
+correlation of $r = -0.388$ with turnover; employees who left averaged a
+satisfaction score of 0.44 compared to 0.67 for those who stayed. We further
+identify 615 current employees who match a high-risk churn profile (low
+satisfaction, low salary, no promotion in five years). These findings provide
+HR departments with actionable, data-driven criteria for early intervention
+and targeted retention strategies.
+\end{abstract}
+
+\begin{IEEEkeywords}
+employee turnover, workforce attrition, HR analytics, churn prediction,
+descriptive statistics, SQLite, data analysis
+\end{IEEEkeywords}
+
+% ─── I. INTRODUCTION ─────────────────────────────────────────────────────────
+\section{Introduction}
+
+The cost of replacing an employee is widely estimated at between 50\% and
+200\% of that employee's annual salary, accounting for recruiting, onboarding,
+lost productivity, and institutional knowledge transfer~\cite{griffeth2000}.
+Yet despite this substantial burden, many organizations respond to turnover
+reactively---conducting exit interviews only after employees have already
+resigned, and implementing changes too late to retain the individuals who
+prompted them.
+
+The central challenge is one of prediction: given observable workplace
+factors, can an organization identify which employees are most likely to leave
+before they submit their resignation? This problem is well-suited to
+data-driven analysis. Modern HR systems routinely capture variables such as
+satisfaction surveys, performance evaluations, compensation tiers, workload
+metrics, and promotion histories---precisely the kinds of signals that may
+indicate attrition risk.
+
+This paper addresses that challenge by applying statistical analysis to an HR
+dataset containing records for 14,999 employees. We pursue four core research
+questions:
+\begin{enumerate}
+  \item How strongly does salary level predict employee turnover?
+  \item What is the relationship between job satisfaction and the likelihood
+        of departure?
+  \item Does workload (measured in monthly hours and project count) influence
+        turnover?
+  \item Can we identify current employees at high churn risk using observable
+        characteristics?
+\end{enumerate}
+
+Our approach is deliberately grounded in accessible statistical
+methods---descriptive statistics, group comparisons, correlation analysis, and
+SQL querying against a normalized relational database---rather than black-box
+machine learning models. This makes our findings interpretable and actionable
+for HR practitioners who may not have data science expertise.
+
+The remainder of this paper is organized as follows. Section~\ref{sec:related}
+reviews related work. Section~\ref{sec:dataset} describes the dataset.
+Section~\ref{sec:method} details our methodology. Section~\ref{sec:results}
+presents results. Section~\ref{sec:discussion} discusses implications.
+Section~\ref{sec:conclusion} concludes with limitations and future directions.
+
+% ─── II. RELATED WORK ────────────────────────────────────────────────────────
+\section{Related Work}
+\label{sec:related}
+
+Employee attrition prediction has been an active area of research in both
+human resources management and data science. Early work by Mobley~\cite{mobley1977}
+established a foundational behavioral model of turnover, identifying job
+dissatisfaction as the primary precursor to resignation---a finding
+consistently replicated in subsequent literature. Griffeth, Hom, and
+Gaertner~\cite{griffeth2000} later confirmed through meta-analysis that
+satisfaction, pay, and workload are the most reliable predictors of departure
+across industries and time periods.
+
+More recent computational approaches have applied supervised machine learning
+to HR datasets. Punnoose and Ajit~\cite{punnoose2016} applied random forests
+and logistic regression to the same Kaggle HR dataset used in this study,
+achieving classification accuracies above 97\%. Similarly, Alduayj and
+Rajpoot~\cite{alduayj2018} compared decision trees, support vector machines,
+and neural networks for attrition prediction, finding that tree-based models
+consistently outperformed others on HR tabular data. Zhao et al.~\cite{zhao2018}
+demonstrated that ensemble methods further improve predictive performance but
+at significant cost to interpretability.
+
+While the predictive accuracy of machine learning models is high, a
+recognized limitation is interpretability~\cite{doshi2017}. HR managers need
+to understand \textit{why} a model flags an employee as high-risk, not just
+that it does. Our work is positioned in the tradition of transparent
+statistical approaches that make decision criteria visible and reproducible
+by any analyst.
+
+% ─── III. DATASET ────────────────────────────────────────────────────────────
+\section{Dataset}
+\label{sec:dataset}
+
+\subsection{Source and Scope}
+
+The dataset is the HR Employee Retention dataset publicly available on
+Kaggle~\cite{kaggle}, compiled to simulate realistic human resources records.
+It contains \textbf{14,999 employee records}, each representing a unique
+individual. The outcome variable (\texttt{left}) indicates whether the
+employee departed the organization (1) or remained (0).
+
+\subsection{Variables}
+
+The dataset includes ten variables spanning four conceptual domains, shown
+in Table~\ref{tab:variables}.
+
+\begin{table}[h]
+\caption{Dataset Variables}
+\label{tab:variables}
+\centering
+\begin{tabular}{llll}
+\toprule
+\textbf{Domain} & \textbf{Variable} & \textbf{Type} & \textbf{Description} \\
+\midrule
+Satisfaction  & \texttt{satisfaction\_level}   & Numeric [0,1] & Self-reported satisfaction \\
+Performance   & \texttt{last\_evaluation}       & Numeric [0,1] & Last performance review \\
+Workload      & \texttt{number\_project}        & Integer       & Projects assigned \\
+Workload      & \texttt{average\_monthly\_hours}& Integer       & Avg.\ hours/month \\
+Tenure        & \texttt{time\_spend\_company}   & Integer       & Years at company \\
+Safety        & \texttt{work\_accident}         & Boolean       & Had a work accident \\
+Career        & \texttt{promotion\_last\_5years}& Boolean       & Promoted in 5 yrs \\
+Compensation  & \texttt{salary}                 & Categorical   & Low / medium / high \\
+Outcome       & \texttt{left}                   & Boolean       & Left the company \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Data Quality}
+
+A missing value audit revealed no null entries in any column. Outlier
+detection using the interquartile range (IQR) method identified a small number
+of anomalous values in \texttt{average\_monthly\_hours} (values above 310
+hours/month), which were retained as plausible extreme-workload cases. Schema
+constraints enforced data integrity: \texttt{CHECK} clauses validated that
+satisfaction and evaluation scores fall within [0,1], that hours and tenure
+are non-negative, and that foreign key relationships across all four tables
+are consistent. A row-count reconciliation confirmed all 14,999 records are
+present and accounted for after normalization.
+
+\subsection{Database Schema}
+
+To support efficient querying, the flat CSV was normalized into a four-table
+relational schema in SQLite~\cite{codd1970}:
+\begin{itemize}
+  \item \texttt{salary\_levels} --- lookup table mapping salary tier labels to IDs
+  \item \texttt{employees} --- core identity table (emp\_id, salary\_id, tenure)
+  \item \texttt{performance\_records} --- satisfaction, evaluation, project count,
+        monthly hours
+  \item \texttt{employment\_events} --- work accidents, promotion history, and
+        turnover outcome
+\end{itemize}
+This normalized design eliminates redundancy, enforces referential integrity
+via foreign keys, and allows the turnover outcome to be joined against any
+combination of employee attributes in a single SQL query.
+
+% ─── IV. METHODOLOGY ─────────────────────────────────────────────────────────
+\section{Methodology}
+\label{sec:method}
+
+\subsection{Descriptive Statistics}
+
+For all numeric variables, we computed mean, median, mode, standard deviation,
+variance, range, quartiles (Q1, Q3), and the interquartile range. These
+statistics were calculated separately for employees who left and those who
+stayed, enabling direct comparison of distributional differences across
+turnover groups.
+
+\subsection{Group Comparison}
+
+Turnover rates were computed for each level of the categorical variables
+(salary tier, promotion status, work accident occurrence). For numeric
+variables, we segmented employees into bins and computed turnover rates within
+each bin to identify non-linear relationships.
+
+\subsection{Correlation Analysis}
+
+Pearson correlation coefficients were computed between each numeric feature
+and the binary \texttt{left} outcome, producing a ranked list of predictors by
+association strength.
+
+\subsection{SQL-Based Analysis}
+
+All group-level queries were executed against the normalized SQLite database.
+Key queries included: overall turnover rate (\texttt{COUNT} with
+\texttt{GROUP BY left\_company}); turnover rate by salary tier (three-table
+join across \texttt{employees}, \texttt{salary\_levels},
+\texttt{employment\_events}); average satisfaction and monthly hours by
+turnover status; and high-risk employee identification using compound
+\texttt{WHERE} filters.
+
+\subsection{Risk Profiling}
+
+A high-risk profile was defined using three simultaneous criteria:
+satisfaction score below 0.4, salary tier of ``low'', and no promotion in
+the last five years, constrained to employees still at the company. This
+threshold was set based on the distributional boundary at which turnover
+rates were observed to increase sharply.
+
+% ─── V. RESULTS ──────────────────────────────────────────────────────────────
+\section{Results}
+\label{sec:results}
+
+\subsection{Overall Turnover Rate}
+
+Of 14,999 employees, 3,571 left the organization, yielding an \textbf{overall
+turnover rate of 23.81\%}. This substantially exceeds the commonly cited U.S.
+industry average of approximately 15\%~\cite{bls2023}.
+
+\subsection{Turnover by Salary Tier}
+
+Salary tier is one of the strongest single-variable predictors of turnover.
+Table~\ref{tab:salary} shows turnover rates disaggregated by compensation
+group. Low-salary employees leave at more than \textbf{four times} the rate
+of high-salary employees.
+
+\begin{table}[h]
+\caption{Turnover Rate by Salary Tier}
+\label{tab:salary}
+\centering
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Salary Tier} & \textbf{Total} & \textbf{Left} & \textbf{Rate} \\
+\midrule
+Low    & 7,316 & 2,172 & \textbf{29.69\%} \\
+Medium & 6,446 & 1,317 & 20.43\% \\
+High   & 1,237 &    82 & \textbf{6.63\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Job Satisfaction and Turnover}
+
+Job satisfaction shows the most pronounced difference between retained and
+departed employees across all variables (Table~\ref{tab:avgs}). It also
+produces the strongest Pearson correlation with turnover outcome
+($r = -0.388$).
+
+\begin{table}[h]
+\caption{Average Feature Values by Turnover Status}
+\label{tab:avgs}
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Feature} & \textbf{Stayed} & \textbf{Left} \\
+\midrule
+Satisfaction level      & \textbf{0.667} & \textbf{0.440} \\
+Last evaluation score   & 0.715 & 0.718 \\
+Number of projects      & 3.79  & 3.86  \\
+Avg.\ monthly hours     & 199.1 & 207.4 \\
+Years at company        & 3.38  & 3.88  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Satisfaction differs by 0.227 points between groups---a 34\% relative gap.
+By contrast, evaluation scores are nearly identical (0.715 vs.\ 0.718),
+confirming that turnover is a satisfaction problem, not a performance problem.
+
+\subsection{Feature Correlation Analysis}
+
+Table~\ref{tab:corr} presents the Pearson correlation of each feature with
+the \texttt{left} outcome, ranked by absolute magnitude.
+
+\begin{table}[h]
+\caption{Feature Correlation with Turnover ($\mathtt{left} = 1$)}
+\label{tab:corr}
+\centering
+\begin{tabular}{lc}
+\toprule
+\textbf{Feature} & \textbf{Pearson $r$} \\
+\midrule
+\texttt{satisfaction\_level}    & $-0.388$ \\
+\texttt{work\_accident}         & $-0.155$ \\
+\texttt{time\_spend\_company}   & $+0.145$ \\
+\texttt{average\_monthly\_hours}& $+0.071$ \\
+\texttt{promotion\_last\_5years}& $-0.062$ \\
+\texttt{number\_project}        & $+0.024$ \\
+\texttt{last\_evaluation}       & $+0.007$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Satisfaction is the strongest single predictor by a wide margin.
+\texttt{last\_evaluation} shows virtually no correlation ($r = +0.007$),
+confirming that performance evaluation does not distinguish leavers from
+stayers.
+
+\subsection{Workload and Turnover}
+
+Employees who left worked an average of \textbf{207.4 hours per month}
+compared to 199.1 for those who stayed---a difference of 8.3 hours, or
+roughly two extra workdays per month. The correlation of
+\texttt{average\_monthly\_hours} with turnover ($r = +0.071$) suggests
+overwork is a contributing factor, though it acts as a compounding stressor
+alongside low satisfaction and low pay rather than an independent driver.
+
+\subsection{High-Risk Employee Profiling}
+
+Applying the compound risk profile, the analysis identified \textbf{615
+current employees} who match all three criteria. Table~\ref{tab:risk} shows
+the ten highest-risk individuals by lowest satisfaction score.
+
+\begin{table}[h]
+\caption{Sample High-Risk Employees (Top 10 by Lowest Satisfaction)}
+\label{tab:risk}
+\centering
+\begin{tabular}{cccr}
+\toprule
+\textbf{Emp.\ ID} & \textbf{Satisfaction} & \textbf{Hrs/Mo} & \textbf{Tenure} \\
+\midrule
+2087  & 0.12 & 244 & 5 \\
+3129  & 0.12 & 257 & 6 \\
+4026  & 0.12 & 241 & 2 \\
+4684  & 0.12 & 276 & 4 \\
+5336  & 0.12 & 166 & 3 \\
+7772  & 0.12 & 161 & 4 \\
+8745  & 0.12 & 287 & 4 \\
+9283  & 0.12 & 200 & 3 \\
+11069 & 0.12 & 191 & 5 \\
+13280 & 0.12 & 191 & 5 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ─── VI. DISCUSSION ──────────────────────────────────────────────────────────
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Compensation is the Dominant Structural Factor}
+
+The four-to-one ratio in turnover rates between low and high salary tiers is
+the single most actionable finding in this study. It suggests that
+compensation structure creates a systemic attrition risk that cannot be
+resolved through engagement programs or managerial coaching alone.
+Organizations with large proportions of low-salary employees should treat
+compensation review as a primary retention strategy~\cite{griffeth2000}.
+
+\subsection{Satisfaction Predicts Turnover Independently of Performance}
+
+The near-identical evaluation scores between leavers and stayers (0.718
+vs.\ 0.715), combined with the near-zero correlation of \texttt{last\_evaluation}
+with turnover ($r = +0.007$), challenges the common assumption that turnover
+is driven by underperformers. The data shows the opposite: departed employees
+were equally well-evaluated as retained ones. This replicates Mobley's
+foundational finding~\cite{mobley1977} and underscores that retention efforts
+should be framed as a satisfaction and engagement problem, not a performance
+management problem.
+
+\subsection{Workload Acts as a Compounding Risk Factor}
+
+The highest-risk employees in the profiling analysis combine low satisfaction
+with above-average hours, suggesting that overwork amplifies the effect of low
+satisfaction rather than driving attrition independently. HR interventions
+should target the intersection of these factors, not either factor in
+isolation~\cite{hom2017}.
+
+\subsection{Early Intervention Opportunity}
+
+The identification of 615 high-risk current employees is the most practically
+valuable output of this analysis. Unlike post-departure analyses, this
+profiling approach is actionable before attrition occurs. HR departments can
+operationalize it as a recurring SQL query to generate a prioritized list for
+manager outreach, salary review, or promotion consideration.
+
+\subsection{Limitations}
+
+This study has several limitations. First, the dataset is simulated~\cite{kaggle}
+and does not represent a specific organization, which limits the
+generalizability of specific threshold values. Second, our analysis is
+descriptive rather than causal: we identify associations, not causal effects.
+Third, the dataset lacks department or role information, which likely moderates
+many of the relationships observed. Fourth, class imbalance (approximately
+24\% leavers) should be addressed before extending this framework to predictive
+modeling.
+
+% ─── VII. CONCLUSION ─────────────────────────────────────────────────────────
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper analyzed an HR dataset of 14,999 employees to identify the factors
+most strongly associated with workforce attrition. Salary tier and job
+satisfaction are the two dominant predictors of turnover---with satisfaction
+producing the strongest correlation ($r = -0.388$)---while performance
+evaluation is essentially uncorrelated with departure ($r = +0.007$).
+Critically, departed employees were equally well-evaluated as retained
+employees, confirming that turnover is a satisfaction problem, not a
+performance problem.
+
+By normalizing a flat HR CSV into a constraint-validated SQLite schema and
+operationalizing findings as reusable SQL queries, we demonstrate that
+organizations can generate actionable, prioritized intervention lists from
+existing HR data without requiring machine learning infrastructure. The 615
+high-risk employees identified here represent an immediately addressable
+retention opportunity.
+
+Future work should apply this framework to real organizational data with
+department-level granularity, incorporate time-series analysis to model
+attrition risk over an employee's tenure, and explore causal inference
+methods (e.g., propensity score matching) to move beyond association toward
+actionable causal claims about the effect of salary increases or promotion on
+retention probability.
+
+% ─── ACKNOWLEDGMENT ──────────────────────────────────────────────────────────
+\section*{Acknowledgment}
+
+The author thanks the faculty of the Department of Computer and Electrical
+Engineering and Computer Science at California State University, Bakersfield
+for guidance on this project.
+
+% ─── REFERENCES ──────────────────────────────────────────────────────────────
+\begin{thebibliography}{10}
+
+\bibitem{mobley1977}
+W.~H. Mobley, ``Intermediate linkages in the relationship between job
+satisfaction and employee turnover,'' \textit{J. Appl. Psychol.}, vol.~62,
+no.~2, pp.~237--240, 1977.
+
+\bibitem{griffeth2000}
+R.~W. Griffeth, P.~W. Hom, and S.~Gaertner, ``A meta-analysis of antecedents
+and correlates of employee turnover: Update, moderator tests, and research
+implications for the next millennium,'' \textit{J. Manag.}, vol.~26, no.~3,
+pp.~463--488, 2000.
+
+\bibitem{hom2017}
+P.~W. Hom, T.~W. Lee, J.~D. Shaw, and J.~P. Hausknecht, ``One hundred years
+of employee turnover theory and research,'' \textit{J. Appl. Psychol.},
+vol.~102, no.~3, pp.~530--545, 2017.
+
+\bibitem{bls2023}
+Bureau of Labor Statistics, ``Job Openings and Labor Turnover Summary,''
+U.S. Department of Labor, 2023. [Online]. Available:
+\url{https://www.bls.gov/news.release/jolts.nr0.htm}
+
+\bibitem{punnoose2016}
+R.~Punnoose and P.~Ajit, ``Prediction of employee turnover in organizations
+using machine learning algorithms,'' \textit{Int. J. Adv. Res. Artif.
+Intell.}, vol.~5, no.~9, pp.~22--26, 2016.
+
+\bibitem{zhao2018}
+Y.~Zhao, M.~K. Hryniewicki, F.~Cheng, B.~Fu, and X.~Zhu, ``Employee turnover
+prediction with machine learning: A reliable approach,'' in \textit{Proc.
+Intelligent Systems Conf. (IntelliSys)}, 2018, pp.~737--758.
+
+\bibitem{alduayj2018}
+S.~S. Alduayj and K.~Rajpoot, ``Predicting employee attrition using machine
+learning,'' in \textit{Proc. Int. Conf. Innovations in Information Technology
+(IIT)}, 2018, pp.~93--98.
+
+\bibitem{doshi2017}
+F.~Doshi-Velez and B.~Kim, ``Towards a rigorous science of interpretable
+machine learning,'' \textit{arXiv preprint arXiv:1702.08608}, 2017.
+
+\bibitem{kaggle}
+HR Analytics / Employee Retention Dataset, Kaggle. [Online]. Available:
+\url{https://www.kaggle.com/}
+
+\bibitem{codd1970}
+E.~F. Codd, ``A relational model of data for large shared data banks,''
+\textit{Commun. ACM}, vol.~13, no.~6, pp.~377--387, 1970.
+
+\end{thebibliography}
+
+\end{document}
